@@ -6,12 +6,12 @@ on:
 jobs:
   secure-rdp:
     runs-on: windows-latest
-    timeout-minutes: 3600 # උපරිම ධාවන කාලය පැය 60 (GitHub සීමාවන් අනුව වෙනස් විය හැක)
+    timeout-minutes: 3600
 
     steps:
       - name: Configure Core RDP Settings
         run: |
-          # Remote Desktop සක්‍රීය කිරීම සහ අවශ්‍ය Settings සකස් කිරීම
+          # Remote Desktop සක්‍රීය කිරීම
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
                              -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
@@ -28,7 +28,7 @@ jobs:
 
       - name: Create RDP User with Secure Password
         run: |
-          # RDP සඳහා "RDP" නමින් පරිශීලකයෙකු (User) නිර්මාණය කිරීම
+          # RDP User නිර්මාණය කිරීම
           Add-Type -AssemblyName System.Security
           $charSet = @{
               Upper   = [char[]](65..90)
@@ -55,9 +55,6 @@ jobs:
               exit 1
           }
       
-      # =================================================================
-      # OBS STUDIO ස්ථාපනය සඳහා නව පියවර
-      # =================================================================
       - name: Install OBS Studio 🎬
         run: |
           # OBS Studio Installer එකේ නිල Download link එක
@@ -65,7 +62,6 @@ jobs:
           $installerPath = "$env:TEMP\OBS-Studio-Installer.exe"
           
           Write-Host "Downloading OBS Studio..."
-          # Installer එක බාගත කිරීම
           Invoke-WebRequest -Uri $obsUrl -OutFile $installerPath -TimeoutSec 300
           
           Write-Host "Installing OBS Studio silently..."
@@ -74,7 +70,6 @@ jobs:
           
           Write-Host "OBS Studio installation complete."
           Remove-Item $installerPath -Force
-      # =================================================================
       
       - name: Install Tailscale
         run: |
@@ -90,7 +85,6 @@ jobs:
           # Tailscale සම්බන්ධතාවය ආරම්භ කිරීම
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID
           
-          # Tailscale IP එකක් ලැබෙන තෙක් රැඳී සිටීම
           $tsIP = $null
           $retries = 0
           while (-not $tsIP -and $retries -lt 10) {
@@ -107,15 +101,11 @@ jobs:
       
       - name: Verify RDP Accessibility
         run: |
-          Write-Host "Tailscale IP: $env:TAILSCALE_IP"
-          
-          # Tailscale IP එක මත RDP port 3389 වෙත TCP සම්බන්ධතාවය පරීක්ෂා කිරීම
           $testResult = Test-NetConnection -ComputerName $env:TAILSCALE_IP -Port 3389
           if (-not $testResult.TcpTestSucceeded) {
               Write-Error "TCP connection to RDP port 3389 failed"
               exit 1
           }
-          Write-Host "TCP connectivity successful!"
 
       - name: Maintain Connection
         run: |
