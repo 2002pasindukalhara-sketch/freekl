@@ -1,5 +1,4 @@
 name: RDP
-
 on:
   workflow_dispatch:
 
@@ -34,10 +33,10 @@ jobs:
           Add-Type -AssemblyName System.Security
           $charSet = @{
               Upper   = [char[]](65..90)      # A-Z
-              Lower   = [char[]](97..122)     # a-z
+              Lower   = [char[]](97..122)      # a-z
               Number  = [char[]](48..57)      # 0-9
               Special = ([char[]](33..47) + [char[]](58..64) +
-                         [char[]](91..96) + [char[]](123..126)) # Special characters
+                           [char[]](91..96) + [char[]](123..126)) # Special characters
           }
           $rawPassword = @()
           $rawPassword += $charSet.Upper | Get-Random -Count 4
@@ -56,6 +55,21 @@ jobs:
               Write-Error "User creation failed"
               exit 1
           }
+
+      - name: Install OBS Studio 🚀
+        run: |
+          $obsUrl = "https://cdn-fastly.obsproject.com/downloads/OBS-Studio-30.1.2-Full-Installer-x64.exe" # නවතම අනුවාදය සඳහා මෙය යාවත්කාලීන කරන්න.
+          $installerPath = "$env:TEMP\OBS-Studio-Installer.exe"
+          
+          Write-Host "Downloading OBS Studio from $obsUrl"
+          Invoke-WebRequest -Uri $obsUrl -OutFile $installerPath -TimeoutSec 300
+          
+          Write-Host "Installing OBS Studio silently..."
+          # OBS ස්ථාපනය සඳහා /S (Silent) switch එක භාවිතා කරයි.
+          Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait
+          
+          Write-Host "OBS Studio installation complete."
+          Remove-Item $installerPath -Force
 
       - name: Install Tailscale
         run: |
